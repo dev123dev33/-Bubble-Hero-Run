@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bubble Hero Run</title>
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; padding: 0; background: #0d0d0d; overflow: hidden; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; }
+    #score {
+      position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+      color: #fff; font-size: 2rem; font-weight: bold; z-index: 10;
+      text-shadow: 0 2px 8px #00ffc3, 0 0 2px #000;
+      letter-spacing: 2px;
+      background: rgba(0,0,0,0.25); padding: 8px 24px; border-radius: 18px;
+      border: 2px solid #00ffc3;
+      user-select: none;
+    }
+    #highScore {
+      position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+      color: #b0f7e6; font-size: 1.1rem; font-weight: bold; z-index: 10;
+      text-shadow: 0 2px 8px #00ffc3, 0 0 2px #000;
+      background: rgba(0,0,0,0.18); padding: 4px 18px; border-radius: 12px;
+      border: 1.5px solid #00ffc3;
+      user-select: none;
+    }
+    #gameCanvas {
+      display: block; margin: 0 auto; background: transparent;
+      box-shadow: 0 8px 32px #00ffc355;
+      border-radius: 18px;
+      max-width: 98vw; max-height: 90vh;
+    }
+    #gameOverBox {
+      display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background: #181d23ee; color: #fff; padding: 36px 32px 28px 32px; border-radius: 18px;
+      box-shadow: 0 8px 32px #00ffc355; text-align: center; z-index: 20;
+      min-width: 260px;
+    }
+    #gameOverBox h2 { color: #00ffc3; margin-bottom: 12px; }
+    #restartBtn {
+      margin-top: 18px; padding: 10px 28px; border: none; border-radius: 8px;
+      background: #00ffc3; color: #181d23; font-weight: bold; font-size: 1.1em; cursor: pointer;
+      box-shadow: 0 2px 8px #00ffc355;
+      transition: background 0.2s;
+    }
+    #restartBtn:hover { background: #00c9a7; }
+    @media (max-width: 600px) {
+      #score, #highScore { font-size: 1.1rem; padding: 6px 10px; }
+      #gameOverBox { min-width: 180px; padding: 18px 8px 18px 8px; }
+    }
+  </style>
+</head>
+<body style="background: linear-gradient(135deg, #181d23 0%, #00ffc3 100%); min-height:100vh;">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;">
+    <div style="width:100%;max-width:480px;display:flex;justify-content:space-between;align-items:center;margin:32px auto 0 auto;position:relative;">
+      <div id="score" style="background:rgba(0,0,0,0.22);border-radius:14px;padding:8px 22px;font-size:1.3rem;font-weight:600;color:#fff;box-shadow:0 2px 12px #00ffc355;border:2px solid #00ffc3;letter-spacing:1.5px;position:absolute;left:0;top:0;transform:none;margin:0;">Score: 0</div>
+      <div id="highScore" style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.13);border-radius:12px;padding:6px 16px;font-size:1rem;font-weight:500;color:#b0f7e6;box-shadow:0 2px 8px #00ffc355;border:1.5px solid #00ffc3;position:absolute;right:0;top:0;transform:none;margin:0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#FFD700" style="vertical-align:middle;"><circle cx="12" cy="12" r="10" fill="#FFD700"/><text x="12" y="17" text-anchor="middle" font-size="13" fill="#fff" font-family="Arial" font-weight="bold">★</text></svg>
+        <span>High Score: <span id="highScoreVal">0</span></span>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;width:100%;">
+      <canvas id="gameCanvas" width="480" height="720" style="background:linear-gradient(#1a2a6c,#00ffc3 60%,#181d23);box-shadow:0 8px 32px #00ffc355;border-radius:22px;max-width:98vw;max-height:80vh;margin:24px 0;"></canvas>
+      <div id="gameOverBox" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(24,29,35,0.92);color:#fff;padding:36px 32px 28px 32px;border-radius:18px;box-shadow:0 8px 32px #00ffc355;text-align:center;z-index:20;min-width:260px;">
+        <h2 style="color:#00ffc3;margin-bottom:12px;font-size:2rem;">Game Over!</h2>
+        <div id="finalScore" style="font-size:1.2rem;margin-bottom:18px;"></div>
+        <button id="restartBtn" style="margin-top:8px;padding:12px 38px;border:none;border-radius:8px;background:#00ffc3;color:#181d23;font-weight:bold;font-size:1.1em;cursor:pointer;box-shadow:0 2px 8px #00ffc355;transition:background 0.2s;">Restart</button>
+      </div>
+    </div>
+    <footer style="width:100%;text-align:center;color:#b0f7e6;font-size:0.95em;padding:18px 0 10px 0;opacity:0.7;">&copy; 2025 Bubble Hero Run</footer>
+  </div>
+  <svg id="cloudsBg" width="100%" height="120" style="position:absolute;top:0;left:0;z-index:0;pointer-events:none;">
+    <ellipse cx="60" cy="60" rx="48" ry="22" fill="#fff" opacity="0.13"/>
+    <ellipse cx="180" cy="40" rx="38" ry="16" fill="#fff" opacity="0.09"/>
+    <ellipse cx="340" cy="70" rx="60" ry="25" fill="#fff" opacity="0.11"/>
+    <ellipse cx="420" cy="30" rx="32" ry="13" fill="#fff" opacity="0.08"/>
+  </svg>
+  <button id="musicToggleBtn" title="Pause/Play Music" style="
+    position:fixed;
+    right:22px;
+    bottom:22px;
+    z-index:30;
+    background:rgba(0,0,0,0.22);
+    border:2px solid #00ffc3;
+    border-radius:50%;
+    width:48px;
+    height:48px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 2px 12px #00ffc355;
+    cursor:pointer;
+    transition:background 0.2s;
+  ">
+    <span id="musicIcon" style="font-size:1.6em; color:#00ffc3;">&#9835;</span>
+  </button>
+  <script>
+    // --- Sound effect (optional, comment/remove if not needed) ---
+    const jumpSound = new Audio("jumpsound.mp3");
+
+    const gameOverSound = new Audio("gameover1.mp3"); // Ganti dengan efek lain jika mau
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let hero, gravity, jumpPower, obstacles, score, gameOver, gameStarted, groundY, bgOffset, speed, clouds, particles;
+    const scoreDiv = document.getElementById('score');
+    const highScoreDiv = document.getElementById('highScore');
+    const gameOverBox = document.getElementById('gameOverBox');
+    const finalScore = document.getElementById('finalScore');
+    const restartBtn = document.getElementById('restartBtn');
+    let highScore = parseInt(localStorage.getItem("bubble_highscore") || "0");
+    let animationId = null;
+    let obstacleTimeout = null;
+
+    // --- Music background (optional, comment/remove if not needed) ---
+    const bgMusic = new Audio("soundbackground.mp3"); // Ganti dengan musik favoritmu
+    bgMusic.loop = true;
+    bgMusic.volume = 0.35;
+
+    function resetGame() {
+      hero = { x: 80, y: 600, r: 28, vy: 0, jumping: false, scale: 1 };
+      gravity = 0.55;
+      jumpPower = -16;
+      obstacles = [];
+      score = 0;
+      gameOver = false;
+      gameStarted = true;
+      groundY = canvas.height - 60;
+      bgOffset = 0;
+      speed = 4.2;
+      clouds = [
+        {x: 40, y: 120, r: 38, dx: 0.7},
+        {x: 220, y: 80, r: 28, dx: 0.5},
+        {x: 400, y: 160, r: 32, dx: 0.6}
+      ];
+      particles = [];
+      scoreDiv.innerText = "Score: 0";
+      document.getElementById('highScoreVal').innerText = highScore; // <-- ini saja!
+      gameOverBox.style.display = "none";
+      cancelAnimationFrame(animationId);
+      if (obstacleTimeout) clearTimeout(obstacleTimeout);
+      spawnObstacle();
+      animationId = requestAnimationFrame(update);
+    }
+
+
+    function drawBackground() {
+      // Gradient sky
+      let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grad.addColorStop(0, "#1a2a6c");
+      grad.addColorStop(0.5, "#00ffc3");
+      grad.addColorStop(1, "#181d23");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Clouds
+      clouds.forEach(cloud => {
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.beginPath();
+        ctx.arc(cloud.x, cloud.y, cloud.r, 0, Math.PI * 2);
+        ctx.arc(cloud.x + cloud.r*0.8, cloud.y + 8, cloud.r*0.7, 0, Math.PI * 2);
+        ctx.arc(cloud.x - cloud.r*0.7, cloud.y + 10, cloud.r*0.6, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.restore();
+        cloud.x += cloud.dx;
+        if (cloud.x - cloud.r > canvas.width) cloud.x = -cloud.r;
+      });
+    }
+
+    function drawHero() {
+      // Bubble shadow
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.beginPath();
+      ctx.ellipse(hero.x, hero.y + hero.r + 8, hero.r * 0.9 * hero.scale, hero.r * 0.35 * hero.scale, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "#00ffc3";
+      ctx.fill();
+      ctx.restore();
+      // Bubble
+      ctx.save();
+      ctx.translate(hero.x, hero.y);
+      ctx.scale(hero.scale, hero.scale);
+      ctx.beginPath();
+      ctx.arc(0, 0, hero.r, 0, Math.PI * 2);
+      ctx.fillStyle = "#00ffc3";
+      ctx.shadowColor = "#00ffc3";
+      ctx.shadowBlur = 16;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // Bubble shine
+      ctx.beginPath();
+      ctx.arc(-hero.r/2.5, -hero.r/2.5, hero.r/4, 0, Math.PI * 2);
+      ctx.fillStyle = "#fff8";
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawObstacle(obs) {
+      ctx.save();
+      ctx.shadowColor = obs.color;
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = obs.color;
+      ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      // Top highlight
+      ctx.fillStyle = "#fff3";
+      ctx.fillRect(obs.x, obs.y, obs.w, 6);
+    }
+
+    function drawGround() {
+      ctx.save();
+      ctx.fillStyle = "#222";
+      ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+      // Moving stripes
+      ctx.strokeStyle = "#00ffc355";
+      ctx.lineWidth = 4;
+      for(let i=0; i<canvas.width; i+=48) {
+        ctx.beginPath();
+        ctx.moveTo((i + bgOffset)%canvas.width, groundY+8);
+        ctx.lineTo((i+28 + bgOffset)%canvas.width, groundY+8);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        ctx.save();
+        ctx.globalAlpha = p.a;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.c;
+        ctx.fill();
+        ctx.restore();
+        p.x += p.vx;
+        p.y += p.vy;
+        p.a -= 0.02;
+        if (p.a <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function update() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawBackground();
+
+      // Background ground
+      bgOffset = (bgOffset + speed/2) % 48;
+      drawGround();
+
+      // Hero
+      hero.vy += gravity;
+      hero.y += hero.vy;
+
+      // Bubble scale anim
+      if (hero.vy < -2) hero.scale = 1.13;
+      else if (hero.vy > 6) hero.scale = 0.93;
+      else hero.scale += (1 - hero.scale) * 0.2;
+
+      if (hero.y + hero.r > groundY) {
+        hero.y = groundY - hero.r;
+        hero.vy = 0;
+        hero.jumping = false;
+      }
+
+      // Obstacles
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        obstacles[i].x -= speed;
+        if (obstacles[i].x + obstacles[i].w < 0) {
+          obstacles.splice(i, 1);
+          score++;
+          scoreDiv.innerText = `Score: ${score}`;
+          // Tambah efek partikel score
+          for(let j=0;j<6;j++){
+            particles.push({
+              x: hero.x+hero.r+Math.random()*10,
+              y: hero.y-hero.r+Math.random()*10,
+              r: 2+Math.random()*2,
+              vx: (Math.random()-0.5)*2,
+              vy: -2-Math.random()*2,
+              a: 0.7+Math.random()*0.3,
+              c: "#FFD700"
+            });
+          }
+          if (score > highScore) {
+            highScore = score;
+            localStorage.setItem("bubble_highscore", highScore);
+            document.getElementById('highScoreVal').innerText = highScore;
+          }
+        }
+        // Collision
+        if (
+          hero.x + hero.r * hero.scale > obstacles[i].x &&
+          hero.x - hero.r * hero.scale < obstacles[i].x + obstacles[i].w &&
+          hero.y + hero.r * hero.scale > obstacles[i].y &&
+          hero.y - hero.r * hero.scale < obstacles[i].y + obstacles[i].h
+        ) {
+          if (!gameOver) {
+            gameOver = true;
+            hero.jumping = true; // <-- tambahkan ini
+            showGameOver();
+          }
+        }
+        drawObstacle(obstacles[i]);
+      }
+
+      drawHero();
+      drawParticles();
+
+      if (!gameOver) {
+        animationId = requestAnimationFrame(update);
+      }
+    } // <--- tambahkan ini untuk menutup function update()
+
+    function spawnObstacle() {
+      if (gameOver || !gameStarted) return;
+      let height = 40 + Math.random() * 80; // lebih rendah
+      let color = ["#ff0055", "#ffb300", "#00bfff", "#00ffc3"][Math.floor(Math.random()*4)];
+      obstacles.push({
+        x: canvas.width + 10,
+        y: groundY - height,
+        w: 44 + Math.random()*12,
+        h: height,
+        color: color
+      });
+      obstacleTimeout = setTimeout(spawnObstacle, 1500 + Math.random()*600); // lebih jarang
+    }
+
+    function showGameOver() {
+      try { bgMusic.pause(); } catch(e){} // <-- tambahkan ini!
+      finalScore.innerHTML = `<b>Your Score:</b> ${score}<br><b>High Score:</b> ${highScore}`;
+      gameOverBox.style.display = "block";
+      try { gameOverSound.currentTime = 0; gameOverSound.play(); } catch(e){}
+    }
+
+    let musicUserPaused = false;
+
+    // Controls
+    function jump() {
+      if (gameOver) return;
+      if (bgMusic.paused && !musicUserPaused) {
+        try { bgMusic.currentTime = 0; bgMusic.play(); } catch(e){}
+      }
+      if (!hero.jumping) {
+        hero.vy = jumpPower;
+        hero.jumping = true;
+        // Particle effect
+        for(let i=0; i<10; i++) {
+          particles.push({
+            x: hero.x, y: hero.y+hero.r,
+            r: 3+Math.random()*3,
+            vx: (Math.random()-0.5)*2,
+            vy: 2+Math.random()*2,
+            a: 0.7+Math.random()*0.3,
+            c: "#00ffc3"
+          });
+        }
+        try { jumpSound.currentTime = 0; jumpSound.play(); } catch(e){}
+      }
+    }
+
+    canvas.addEventListener('click', jump);
+    window.addEventListener('keydown', e => {
+      if (e.code === "Space" || e.key === " ") {
+        jump();
+        e.preventDefault();
+      }
+    });
+
+    // Responsive canvas
+    function resizeCanvas() {
+      let w = Math.min(window.innerWidth, 480);
+      let h = Math.min(window.innerHeight, 720);
+      canvas.width = w;
+      canvas.height = h;
+      groundY = canvas.height - 60;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Restart
+    restartBtn.onclick = () => {
+      resetGame();
+      if (bgMusic.paused && !musicUserPaused) {
+        try { bgMusic.currentTime = 0; bgMusic.play(); } catch(e){}
+      }
+    };
+
+    // Music toggle
+    const musicToggleBtn = document.getElementById('musicToggleBtn');
+    const musicIcon = document.getElementById('musicIcon');
+
+    musicToggleBtn.onclick = function() {
+      if (bgMusic.paused) {
+        try { bgMusic.play(); } catch(e){}
+        musicUserPaused = false;
+        musicIcon.innerHTML = "&#9835;";
+      } else {
+        bgMusic.pause();
+        musicUserPaused = true;
+        musicIcon.innerHTML = "&#128263;";
+      }
+    };
+
+    // Sync icon if music stopped by other event
+    bgMusic.onpause = () => { musicIcon.innerHTML = "&#128263;"; };
+    bgMusic.onplay = () => { musicIcon.innerHTML = "&#9835;"; };
+
+    // Start
+    resetGame();
+  </script>
+</body>
+</html>
